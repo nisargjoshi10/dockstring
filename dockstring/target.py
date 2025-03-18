@@ -183,57 +183,77 @@ class Target:
         docked_ligand_pdb = self.working_dir / 'docked_ligand.pdb'
 
         # Make sure user input is standardized
-        canonical_smiles = canonicalize_smiles(smiles)
+        try:
+            canonical_smiles = canonicalize_smiles(smiles)
+        except:
+#            print('cannot canonicalize smiles skipping')
+            return 'cant canonicalize smiles', {}
 
         # Read and check input
         mol = smiles_to_mol(canonical_smiles, verbose=verbose)
-        mol = sanitize_mol(mol, verbose=verbose)
-        check_mol(mol)
-        check_charges(mol)
+        if mol is None:
+#            print('mol = None, skipping')
+            return 'mol is None', {}
+        else:
+            mol = sanitize_mol(mol, verbose=verbose)
+            try:
+                check_mol(mol)
+            except Exception as e:
+                return 'check_mol error', {}
+            check_charges(mol)
 
         # Check that the right Open Babel version is available
-        check_obabel_install()
+            check_obabel_install()
 
         # Protonate ligand
-        protonated_mol = protonate_mol(mol, pH=pH)
-        check_mol(protonated_mol)
-
+            protonated_mol = protonate_mol(mol, pH=pH)
+            try:
+                check_mol(protonated_mol)
+            except Exception as e:
+                return 'check_mol protonated error',{}
         # Embed ligand
-        embedded_mol = embed_mol(protonated_mol, seed=seed)
-        refined_mol = refine_mol_with_ff(embedded_mol)
-        assign_stereochemistry(refined_mol)
+            try:
+                embedded_mol = embed_mol(protonated_mol, seed=seed)
+            except Exception as e:
+                return 'embed mol error', {}
+            refined_mol = refine_mol_with_ff(embedded_mol)
+            if refined_mol is None:
+                logging.info("optimized failure, skipping")
+                return 'refined_mol error', {}
+            else:
+                assign_stereochemistry(refined_mol)
 
         # Dock
-        write_mol_to_mol_file(refined_mol, ligand_mol_file)
-        convert_mol_file_to_pdbqt(ligand_mol_file, ligand_pdbqt)
-        self._dock_pdbqt(ligand_pdbqt, vina_logfile, vina_outfile, seed=seed, num_cpus=num_cpus)
+            write_mol_to_mol_file(refined_mol, ligand_mol_file)
+            convert_mol_file_to_pdbqt(ligand_mol_file, ligand_pdbqt)
+            self._dock_pdbqt(ligand_pdbqt, vina_logfile, vina_outfile, seed=seed, num_cpus=num_cpus)
 
         # Process docking output
-        try:
-            check_vina_output(vina_outfile)
-        except DockingError:
-            return None, {}
+            try:
+                check_vina_output(vina_outfile)
+            except DockingError:
+                return 'docking error', {}
 
-        convert_pdbqt_to_pdb(pdbqt_file=vina_outfile, pdb_file=docked_ligand_pdb, disable_bonding=True)
-        raw_ligand = read_mol_from_pdb(docked_ligand_pdb)
+            convert_pdbqt_to_pdb(pdbqt_file=vina_outfile, pdb_file=docked_ligand_pdb, disable_bonding=True)
+            raw_ligand = read_mol_from_pdb(docked_ligand_pdb)
 
         # Assign bond orders and stereochemistry
-        refined_mol_no_hs = Chem.RemoveHs(refined_mol)  # remove Hs as they are not present in the PDBQT file
-        ligand = assign_bond_orders(subject=raw_ligand, ref=refined_mol_no_hs)
-        assign_stereochemistry(ligand)
+            refined_mol_no_hs = Chem.RemoveHs(refined_mol)  # remove Hs as they are not present in the PDBQT file
+            ligand = assign_bond_orders(subject=raw_ligand, ref=refined_mol_no_hs)
+            assign_stereochemistry(ligand)
 
         # Verify docked ligand
-        verify_docked_ligand(ref=refined_mol_no_hs, subject=ligand)
+            verify_docked_ligand(ref=refined_mol_no_hs, subject=ligand)
 
         # Parse scores
-        affinities = parse_affinities_from_output(docked_ligand_pdb)
-        assert len(affinities) == ligand.GetNumConformers()
-        score = affinities[0]
+            affinities = parse_affinities_from_output(docked_ligand_pdb)
+            assert len(affinities) == ligand.GetNumConformers()
+            score = affinities[0]
 
-        return score, {
-            'ligand': ligand,
-            'affinities': affinities,
-        }
+            return score, {
+                'ligand': ligand,
+                'affinities': affinities,
+            }
 
     def view(
         self,

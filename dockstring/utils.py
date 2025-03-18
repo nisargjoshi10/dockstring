@@ -126,7 +126,9 @@ def canonicalize_smiles(smiles: str) -> str:
     try:
         return Chem.CanonSmiles(smiles, useChiral=True)
     except Exception as e:
-        raise CanonicalizationError(f'Cannot canonicalize SMILES: {e}')
+#        print('cannot canonicalize smiles, skipping')
+        return smiles
+#        raise CanonicalizationError(f'Cannot canonicalize SMILES: {e}')
 
 
 def smiles_to_mol(smiles: str, verbose=False) -> Chem.Mol:
@@ -140,8 +142,9 @@ def smiles_to_mol(smiles: str, verbose=False) -> Chem.Mol:
     if not verbose:
         rdBase.DisableLog('rdApp.error')
     mol = Chem.MolFromSmiles(smiles, sanitize=True)
-    if mol is None:
-        raise ParsingError('Could not parse SMILES string')
+#    if mol is None:
+#        print('could not parse SMILE, skipping.')
+#        raise ParsingError('Could not parse SMILES string')
     if not verbose:
         rdBase.EnableLog('rdApp.error')
 
@@ -159,10 +162,13 @@ def sanitize_mol(mol: Chem.Mol, verbose=False) -> Chem.Mol:
     uncharger = Uncharger()
     if not verbose:
         rdBase.DisableLog('rdApp.info')
-    mol = uncharger.uncharge(mol)
-    if not verbose:
-        rdBase.EnableLog('rdApp.info')
-    return mol
+    if mol is None:
+        return None
+    else:
+        mol = uncharger.uncharge(mol)
+        if not verbose:
+            rdBase.EnableLog('rdApp.info')
+        return mol
 
 
 def check_charges(mol: Chem.Mol) -> None:
@@ -234,14 +240,17 @@ def run_uff_opt(mol: Chem.Mol, max_iters: int) -> Chem.Mol:
     :return: optimized molecule
     """
     opt_mol = copy.copy(mol)
-    opt_result = Chem.UFFOptimizeMolecule(opt_mol, maxIters=max_iters)
-    if opt_result != 0:
-        raise StructureOptimizationError('UFF optimization of ligand failed')
-
+    try:
+        opt_result = Chem.UFFOptimizeMolecule(opt_mol, maxIters=max_iters)
+        if opt_result != 0:
+            raise StructureOptimizationError('UFF optimization of ligand failed')
+    except Exception as e:
+        logging.info(f"UFF optimization failed: {e}")
+        return None
     return opt_mol
 
 
-def refine_mol_with_ff(mol, max_iters=1000) -> Chem.Mol:
+def refine_mol_with_ff(mol, max_iters=1000) -> Chem.Mol: #changed max_iters to 200 {default in rdkit} from 1000 {default in dockstring}
     """
     Optimize molecular structure. Try MMFF94 first, use UFF as a backup.
 
@@ -249,19 +258,27 @@ def refine_mol_with_ff(mol, max_iters=1000) -> Chem.Mol:
     :param max_iters: maximum number of structure optimization iterations
     :return: optimized molecule
     """
-    if Chem.MMFFHasAllMoleculeParams(mol):
-        try:
-            opt_mol = run_mmff94_opt(mol, max_iters=max_iters)
-        except Chem.rdchem.KekulizeException as exception:
-            logging.info(f'Ligand optimization with MMFF94 failed: {exception}, trying UFF')
+    try:
+        if Chem.MMFFHasAllMoleculeParams(mol):
+            try:
+                opt_mol = run_mmff94_opt(mol, max_iters=max_iters)
+            except StructureOptimizationError:
+                logging.info('Ligand optimization with MMFF94 failed, trying UFF')
+                opt_mol = run_uff_opt(mol, max_iters=max_iters)
+            except Chem.rdchem.KekulizeException as exception:
+                logging.info(f'Ligand optimization with MMFF94 failed: {exception}, trying UFF')
+                opt_mol = run_uff_opt(mol, max_iters=max_iters)
+        elif Chem.UFFHasAllMoleculeParams(mol):
             opt_mol = run_uff_opt(mol, max_iters=max_iters)
-    elif Chem.UFFHasAllMoleculeParams(mol):
-        opt_mol = run_uff_opt(mol, max_iters=max_iters)
 
-    else:
-        raise StructureOptimizationError('Cannot optimize ligand: parameters not available')
+        else:
+            raise StructureOptimizationError('Cannot optimize ligand: parameters not available')
 
-    return opt_mol
+        return opt_mol
+
+    except Exception as e:
+        logging.info(f"Optimization failed: {e}")
+        return None
 
 
 def check_obabel_install() -> None:

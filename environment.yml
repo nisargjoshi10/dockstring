@@ -1,4 +1,4 @@
-name: dockstring
+name: test_dockstring
 channels:
   - conda-forge
 dependencies:
