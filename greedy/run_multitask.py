@@ -8,7 +8,7 @@ from rdkit import RDLogger
 
 RDLogger.DisableLog('rdApp.*')
 
-with open('multitext_out_grredy.json', 'r') as o:
+with open('multitext_out_greedy.json', 'r') as o:
     smiles_dict = json.load(o)
 
 print("loaded smiles dict, starting run now..")
@@ -21,7 +21,7 @@ def get_docking_scores(out_dict):
 
     keys = [k for k in out_dict.keys()]
     scores = {}
-    for i in trange(50,len(keys)):
+    for i in trange(len(keys)):
         k = keys[i]
         target = load_target(k)
         print('loaded target')
