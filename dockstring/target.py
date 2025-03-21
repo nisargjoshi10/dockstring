@@ -1,4 +1,5 @@
 import logging
+import time
 import os
 import pathlib
 import re
@@ -125,7 +126,7 @@ class Target:
 
         return Path(self._tmp_dir_handle.name).resolve()
 
-    def _dock_pdbqt(self, pdbqt_path, log_path, out_path, seed, num_cpus: Optional[int] = None) -> None:
+    def _dock_pdbqt(self, pdbqt_path, log_path, out_path, num_cpus, seed) -> None:
         """
         Run AutoDock Vina.
 
@@ -145,13 +146,32 @@ class Target:
             '--out', out_path,
             '--seed', str(seed),
         ]
+        print('cpus number:', num_cpus)
         # yapf: enable
         if num_cpus is not None:
             cmd_list += ['--cpu', str(num_cpus)]
+        
+        timeout=900
+        max_retries=3
+        for attempt in range(max_retries):
+            start_time = time.time()
+            try:
+                cmd_return = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout)
+                elapsed_time = time.time() - start_time
+                print(f"Iteration completed in {elapsed_time:.2f} seconds")
 
-        cmd_return = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        output = cmd_return.stdout.decode('utf-8')
-        logging.debug(output)
+                output = cmd_return.stdout.decode('utf-8')
+                logging.debug(output)
+
+                return output
+
+            except subprocess.TimeoutExpired:
+                print(f"Timeout occurred (>{timeout}s) on attempt {attempt + 1}/{max_retries}. Retrying...")
+                continue
+#        cmd_return = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+#        output = cmd_return.stdout.decode('utf-8')
+#        logging.debug(output)
+#        logging.error(f"Vina failed after {max_retries} attempts.")
 
         # If failure, raise DockingError
         if cmd_return.returncode != 0:
@@ -161,7 +181,7 @@ class Target:
         self,
         smiles: str,
         pH=7.4,
-        num_cpus: Optional[int] = None,
+        num_cpus: Optional[int] = 16,
         seed=974528263,
         verbose=False,
     ) -> Tuple[Optional[float], Dict[str, Any]]:
@@ -226,8 +246,9 @@ class Target:
         # Dock
             write_mol_to_mol_file(refined_mol, ligand_mol_file)
             convert_mol_file_to_pdbqt(ligand_mol_file, ligand_pdbqt)
-            self._dock_pdbqt(ligand_pdbqt, vina_logfile, vina_outfile, seed=seed, num_cpus=num_cpus)
-
+            print('starting to dock')
+            self._dock_pdbqt(ligand_pdbqt, vina_logfile, vina_outfile, num_cpus, seed=seed)
+            print('done docking')
         # Process docking output
             try:
                 check_vina_output(vina_outfile)
