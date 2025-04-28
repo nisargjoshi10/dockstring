@@ -146,7 +146,7 @@ class Target:
             '--out', out_path,
             '--seed', str(seed),
         ]
-        print('cpus number:', num_cpus)
+#        print('cpus number:', num_cpus)
         # yapf: enable
         if num_cpus is not None:
             cmd_list += ['--cpu', str(num_cpus)]
@@ -175,18 +175,20 @@ class Target:
 
         # If failure, raise DockingError
         if cmd_return.returncode != 0:
-            raise VinaError(f'Docking with Vina failed: {output}')
+            print('failed all three trials, skipping')
+#            raise VinaError(f'Docking with Vina failed: {output}')
+        return 'timeout error'
 
     def dock(
         self,
         smiles: str,
         pH=7.4,
-        num_cpus: Optional[int] = 16,
+        num_cpus: Optional[int] = 8,
         seed=974528263,
         verbose=False,
     ) -> Tuple[Optional[float], Dict[str, Any]]:
         """
-        Given a molecule, this method will return a docking score against the current target.
+ ;       Given a molecule, this method will return a docking score against the current target.
 
         :param smiles: SMILES string of ligand
         :param pH: pH at which the docking should take place (default: 7.4, don't change unless you know what you are doing)
@@ -208,7 +210,8 @@ class Target:
         except:
 #            print('cannot canonicalize smiles skipping')
             return 'cant canonicalize smiles', {}
-
+        if len(canonical_smiles) > 200:
+            return 'SMILES > 200', {}
         # Read and check input
         mol = smiles_to_mol(canonical_smiles, verbose=verbose)
         if mol is None:
@@ -226,7 +229,10 @@ class Target:
             check_obabel_install()
 
         # Protonate ligand
-            protonated_mol = protonate_mol(mol, pH=pH)
+            try:
+                protonated_mol = protonate_mol(mol, pH=pH)
+            except:
+                return 'protonated_mol error', {}
             try:
                 check_mol(protonated_mol)
             except Exception as e:
@@ -245,7 +251,10 @@ class Target:
 
         # Dock
             write_mol_to_mol_file(refined_mol, ligand_mol_file)
-            convert_mol_file_to_pdbqt(ligand_mol_file, ligand_pdbqt)
+            try:
+                convert_mol_file_to_pdbqt(ligand_mol_file, ligand_pdbqt)
+            except:
+                return 'convert dock failed', {}
             print('starting to dock')
             self._dock_pdbqt(ligand_pdbqt, vina_logfile, vina_outfile, num_cpus, seed=seed)
             print('done docking')
@@ -256,15 +265,24 @@ class Target:
                 return 'docking error', {}
 
             convert_pdbqt_to_pdb(pdbqt_file=vina_outfile, pdb_file=docked_ligand_pdb, disable_bonding=True)
-            raw_ligand = read_mol_from_pdb(docked_ligand_pdb)
+            try:
+                raw_ligand = read_mol_from_pdb(docked_ligand_pdb)
+            except:
+                return 'pdb read error', {}
 
         # Assign bond orders and stereochemistry
             refined_mol_no_hs = Chem.RemoveHs(refined_mol)  # remove Hs as they are not present in the PDBQT file
-            ligand = assign_bond_orders(subject=raw_ligand, ref=refined_mol_no_hs)
+            try:
+                ligand = assign_bond_orders(subject=raw_ligand, ref=refined_mol_no_hs)
+            except:
+                return 'assign_bond_order error', {}
             assign_stereochemistry(ligand)
 
         # Verify docked ligand
-            verify_docked_ligand(ref=refined_mol_no_hs, subject=ligand)
+            try:
+                verify_docked_ligand(ref=refined_mol_no_hs, subject=ligand)
+            except:
+                return 'verify_docked_ligand error', {}
 
         # Parse scores
             affinities = parse_affinities_from_output(docked_ligand_pdb)
