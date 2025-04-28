@@ -3,15 +3,15 @@
 ![CI Tests](https://github.com/mgarort/dockstring/workflows/Install%20conda%20env%20and%20run%20pytest./badge.svg?branch=main)
 ![Code Style: yapf](https://img.shields.io/badge/code%20style-yapf-orange.svg)
 
-A Python package for easy molecular docking and docking benchmarking.
-We can dock molecules in a few lines of code from just a SMILES string!
-For details, see [our paper](https://pubs.acs.org/doi/full/10.1021/acs.jcim.1c01334)
-and our [website](https://dockstring.github.io/):
+This is a forked repo from the original [dockstring code](https://github.com/dockstring/dockstring), a python package for easy molecular docking and docking benchmarking. This code is modfied to incorporate automated docking of protein bining ligands from LLMs.
+
+
+For details, see [paper](https://pubs.acs.org/doi/full/10.1021/acs.jcim.1c01334)
+and [website](https://dockstring.github.io/):
 
 > García-Ortegón, Miguel, et al. "DOCKSTRING: easy molecular docking yields better benchmarks for ligand design." Journal of Chemical Information and Modeling (2021).
 
 ## Installation
-
 **Supported platforms:**
 This package is primarily intended for Linux, but we have some support for Mac.
 Please note that the scores from the Mac version do not always perfectly match the Linux version,
