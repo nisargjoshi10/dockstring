@@ -153,6 +153,7 @@ class Target:
         
         timeout=900
         max_retries=3
+        cmd_return = None
         for attempt in range(max_retries):
             start_time = time.time()
             try:
@@ -172,6 +173,9 @@ class Target:
 #        output = cmd_return.stdout.decode('utf-8')
 #        logging.debug(output)
 #        logging.error(f"Vina failed after {max_retries} attempts.")
+        if cmd_return is None:
+            print('All attempts timed out, skipping')
+            return 'timeout error'
 
         # If failure, raise DockingError
         if cmd_return.returncode != 0:
