@@ -213,20 +213,24 @@ class Target:
             canonical_smiles = canonicalize_smiles(smiles)
         except:
 #            print('cannot canonicalize smiles skipping')
-            return 'cant canonicalize smiles', {}
+            return '0', {}
+#            return 'cant canonicalize smiles', {}
         if len(canonical_smiles) > 200:
-            return 'SMILES > 200', {}
+            return '0', {}
+#            return 'SMILES > 200', {}
         # Read and check input
         mol = smiles_to_mol(canonical_smiles, verbose=verbose)
         if mol is None:
 #            print('mol = None, skipping')
-            return 'mol is None', {}
+            return '0', {}
+#            return 'mol is None', {}
         else:
             mol = sanitize_mol(mol, verbose=verbose)
             try:
                 check_mol(mol)
             except Exception as e:
-                return 'check_mol error', {}
+                return '0', {}
+#                return 'check_mol error', {}
             check_charges(mol)
 
         # Check that the right Open Babel version is available
@@ -236,20 +240,24 @@ class Target:
             try:
                 protonated_mol = protonate_mol(mol, pH=pH)
             except:
-                return 'protonated_mol error', {}
+                return '0', {}
+#                return 'protonated_mol error', {}
             try:
                 check_mol(protonated_mol)
             except Exception as e:
-                return 'check_mol protonated error',{}
+                return '0', {}
+#                return 'check_mol protonated error',{}
         # Embed ligand
             try:
                 embedded_mol = embed_mol(protonated_mol, seed=seed)
             except Exception as e:
-                return 'embed mol error', {}
+                return '0', {}
+#                return 'embed mol error', {}
             refined_mol = refine_mol_with_ff(embedded_mol)
             if refined_mol is None:
                 logging.info("optimized failure, skipping")
-                return 'refined_mol error', {}
+                return '0', {}
+#                return 'refined_mol error', {}
             else:
                 assign_stereochemistry(refined_mol)
 
@@ -258,7 +266,8 @@ class Target:
             try:
                 convert_mol_file_to_pdbqt(ligand_mol_file, ligand_pdbqt)
             except:
-                return 'convert dock failed', {}
+                return '0', {}
+#                return 'convert dock failed', {}
             print('starting to dock')
             self._dock_pdbqt(ligand_pdbqt, vina_logfile, vina_outfile, num_cpus, seed=seed)
             print('done docking')
@@ -266,7 +275,8 @@ class Target:
             try:
                 check_vina_output(vina_outfile)
             except DockingError:
-                return 'docking error', {}
+                return '0', {}
+#                return 'docking error', {}
 
             convert_pdbqt_to_pdb(pdbqt_file=vina_outfile, pdb_file=docked_ligand_pdb, disable_bonding=True)
             try:
@@ -279,14 +289,16 @@ class Target:
             try:
                 ligand = assign_bond_orders(subject=raw_ligand, ref=refined_mol_no_hs)
             except:
-                return 'assign_bond_order error', {}
+                return '0', {}
+#                return 'assign_bond_order error', {}
             assign_stereochemistry(ligand)
 
         # Verify docked ligand
             try:
                 verify_docked_ligand(ref=refined_mol_no_hs, subject=ligand)
             except:
-                return 'verify_docked_ligand error', {}
+                return '0', {}
+#                return 'verify_docked_ligand error', {}
 
         # Parse scores
             affinities = parse_affinities_from_output(docked_ligand_pdb)
