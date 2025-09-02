@@ -20,13 +20,6 @@ and [website](https://dockstring.github.io/):
 To install run `pip install .`
 
 You might have to do `chmod +x dockstring/build/lib/dockstring/resources/bin/{VINA_FILE}` if you get `Permission_denied` error.
-**Package versions:**
-
-When installing dockstring, please be mindful of which package versions you install.
-The dockstring dataset was created using:
-
-- `rdkit=2021.03.3`
-- `openbabel=3.1.1`
 
 For rdkit installation: `conda install -c conda-forge rdkit`
 For openbabel installation: `pip install openbabel-wheel`.
