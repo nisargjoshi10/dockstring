@@ -68,5 +68,3 @@ However, this will *not* install the dependencies because `openbabel` currently 
 - See dockstring's basic usage [here](tutorials/1_docking_risperidone_against_DRD2.ipynb).
 - Learn how to visualize docking poses [here](tutorials/2_visualizing_dataset_poses.ipynb)
 
-See [our website](https://dockstring.github.io/) for links to tutorials for
-our dataset and benchmarks.
