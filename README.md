@@ -24,10 +24,6 @@ You might have to do `chmod +x dockstring/build/lib/dockstring/resources/bin/{VI
 For rdkit installation: `conda install -c conda-forge rdkit`
 For openbabel installation: `pip install openbabel-wheel`.
 
-
-However, this will *not* install the dependencies because `openbabel` currently cannot be installed with pip.
-
-
 1. Check whether the installation was successful by running a test script.
    Running without error indicates a successful install.
    ```bash
