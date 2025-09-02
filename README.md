@@ -5,6 +5,10 @@
 
 This is a forked repo from the original [dockstring code](https://github.com/dockstring/dockstring), a python package for easy molecular docking and docking benchmarking. This code is modfied to incorporate automated docking of protein bining ligands from LLMs.
 
+What's changed:
+    - Incorporated timeout block (The code spends 15 minutes to try to find the docking site, after 15 minutes it restarts the docking process). The motivation behind this code block is to avoid the code getting stuck at a certain site and to accelerate docking process.
+    - Prints out time taken to dock a single ligand to a protein target.
+
 
 For details, see [paper](https://pubs.acs.org/doi/full/10.1021/acs.jcim.1c01334)
 and [website](https://dockstring.github.io/):
@@ -13,10 +17,9 @@ and [website](https://dockstring.github.io/):
 
 ## Installation
 **Supported platforms:**
-This package is primarily intended for Linux, but we have some support for Mac.
-Please note that the scores from the Mac version do not always perfectly match the Linux version,
-so we encourage the use of the Linux version whenever possible.
+To install run `pip install .`
 
+You might have to do `chmod +x dockstring/build/lib/dockstring/resources/bin/{VINA_FILE}` if you get `Permission_denied` error.
 **Package versions:**
 
 When installing dockstring, please be mindful of which package versions you install.
@@ -24,50 +27,14 @@ The dockstring dataset was created using:
 
 - `rdkit=2021.03.3`
 - `openbabel=3.1.1`
-- `python=3.7.10`
 
-If you want to reproduce the calculations of the dockstring dataset exactly
-(or calculate docking scores completely consistent with the dataset)
-then ideally install these versions of the packages above.
-However, python 3.7 has reached end of life, so we have tested higher versions of the packages:
-It appears that `python<=3.10, openbabel=3.1.1, rdkit<=2022.03` will also work.
-Ultimately we just suggest being mindful of which version you install,
-and test whether it matches the dataset values after installation (instructions on this below).
-If in doubt, use our `environment.yml` file.
-Note that if you do not care about consistency with our pre-computed dataset then any package version is ok.
+For rdkit installation: `conda install -c conda-forge rdkit`
+For openbabel installation: `pip install openbabel-wheel`.
 
-**Installation instructions:**
-
-We recommend installing with `conda` using our package on [conda-forge](https://anaconda.org/conda-forge/dockstring):
-this will automatically install the correct versions of `rdkit` and `openbabel` (which currently cannot be installed with pip).
-To do this, run:
-
-```bash
-conda install -c conda-forge dockstring
-```
-
-It can alternatively be installed from [PyPI](https://pypi.org/project/dockstring/) by running:
-
-```bash
-python3 -m pip install dockstring
-```
 
 However, this will *not* install the dependencies because `openbabel` currently cannot be installed with pip.
 
-If you want to use dockstring for benchmarking, we recommend installing the latest version by cloning this repo:
 
-1. Clone this repository.
-1. Choose whether to install into an existing environment or create a new environment.
-    - To install into a new environment, run:
-      ```bash
-      conda env create -f environment.yml
-      conda activate dockstring
-      ```
-    - To install into an existing environment, simply install the desired versions of `openbabel` and `rdkit`.
-1. Install the dockstring package with `pip` from this repository:
-   ```bash
-   pip install .
-   ```
 1. Check whether the installation was successful by running a test script.
    Running without error indicates a successful install.
    ```bash
@@ -94,7 +61,7 @@ If you want to use dockstring for benchmarking, we recommend installing the late
    If 99%+ of scores match then it is probably ok to use dockstring in the benchmarks, but there will of course be some error
    and this should be noted.
 
-If this method of installation does not work for you, please raise a github issue and we will try to help.
+
 
 ## Tutorials
 
@@ -103,26 +70,3 @@ If this method of installation does not work for you, please raise a github issu
 
 See [our website](https://dockstring.github.io/) for links to tutorials for
 our dataset and benchmarks.
-
-## Development
-
-See `DEVELOPMENT.md`
-
-## Citation
-
-If you use the dockstring package/dataset/benchmark in your work,
-please use the following citation:
-
-```tex
-@article{garciaortegon2022dockstring,
-    author = {García-Ortegón, Miguel and Simm, Gregor N. C. and Tripp, Austin J. and Hernández-Lobato, José Miguel and Bender, Andreas and Bacallado, Sergio},
-    title = {DOCKSTRING: Easy Molecular Docking Yields Better Benchmarks for Ligand Design},
-    journal = {Journal of Chemical Information and Modeling},
-    volume = {62},
-    number = {15},
-    pages = {3486-3502},
-    year = {2022},
-    doi = {10.1021/acs.jcim.1c01334},
-    URL = {https://doi.org/10.1021/acs.jcim.1c01334}
-}
-```
